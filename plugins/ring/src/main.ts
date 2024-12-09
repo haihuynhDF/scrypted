@@ -62,7 +62,11 @@ class RingPlugin extends ScryptedDeviceBase implements DeviceProvider, Settings,
             defaultValue: true,
         },
         refreshToken: {
-            hide: true,
+            title: 'Refresh Token',
+            type: 'refreshToken',
+            onPut: async () => {
+                await this.onReceiveToken();
+            },
         },
         locationIds: {
             title: 'Location ID',
@@ -216,6 +220,35 @@ class RingPlugin extends ScryptedDeviceBase implements DeviceProvider, Settings,
                 throw e;
             }
         }
+        await createRingApi();
+    }
+
+    async onReceiveToken(code?: string) {
+        const locationIds = this.settingsStorage.values.locationIds ? [this.settingsStorage.values.locationIds] : undefined;
+        const cameraStatusPollingSeconds = 20;
+
+        const createRingApi = async () => {
+            this.api?.disconnect();
+
+            this.api = new RingBaseApi({
+                controlCenterDisplayName: this.settingsStorage.values.controlCenterDisplayName,
+                refreshToken: this.settingsStorage.values.refreshToken,
+                ffmpegPath: await mediaManager.getFFmpegPath(),
+                locationIds,
+                cameraStatusPollingSeconds: this.settingsStorage.values.polling ? cameraStatusPollingSeconds : undefined,
+                locationModePollingSeconds: this.settingsStorage.values.polling ? cameraStatusPollingSeconds : undefined,
+                systemId: this.settingsStorage.values.systemId,
+            }, {
+                createPeerConnection: () => {
+                    throw new Error('unreachable');
+                },
+            });
+
+            this.api.onRefreshTokenUpdated.subscribe(({ newRefreshToken, oldRefreshToken }) => {
+                this.settingsStorage.values.refreshToken = newRefreshToken;
+            });
+        }
+
         await createRingApi();
     }
 
