@@ -47,6 +47,9 @@ jobs:
                 npm install
                 echo "plugins/$dir > npm run build"
                 npm run build
+                ls
+                git status
+                git add .
                 popd
             done
       - name: Create Pull Request
