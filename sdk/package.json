@@ -28,6 +28,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@babel/core": "^7.26.0",
     "@babel/preset-typescript": "^7.26.0",
     "adm-zip": "^0.5.16",
     "axios": "^1.7.7",

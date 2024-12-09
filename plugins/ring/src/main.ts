@@ -25,32 +25,6 @@ class RingPlugin extends ScryptedDeviceBase implements DeviceProvider, Settings,
             hide: true,
             defaultValue: 'scrypted-ring',
         },
-        email: {
-            title: 'Email',
-            onPut: async () => {
-                if (await this.loginNextTick())
-                    this.clearTryDiscoverDevices();
-            },
-        },
-        password: {
-            title: 'Password',
-            type: 'password',
-            onPut: async () => {
-                if (await this.loginNextTick())
-                    this.clearTryDiscoverDevices();
-            },
-        },
-        loginCode: {
-            title: 'Two Factor Code',
-            description: 'Optional: If 2 factor is enabled on your Ring account, enter the code sent by Ring to your email or phone number.',
-            onPut: async (oldValue, newValue) => {
-                await this.tryLogin(newValue);
-                this.console.log('login completed successfully with 2 factor code');
-                await this.discoverDevices();
-                this.console.log('discovery completed successfully');
-            },
-            noStore: true,
-        },
         polling: {
             title: 'Polling',
             description: 'Poll the Ring servers instead of using server delivered Push events. May fix issues with events not being delivered.',
@@ -63,9 +37,10 @@ class RingPlugin extends ScryptedDeviceBase implements DeviceProvider, Settings,
         },
         refreshToken: {
             title: 'Refresh Token',
-            type: 'refreshToken',
             onPut: async () => {
                 await this.onReceiveToken();
+                await this.discoverDevices();
+                this.console.log('discovery completed successfully');
             },
         },
         locationIds: {
@@ -171,10 +146,6 @@ class RingPlugin extends ScryptedDeviceBase implements DeviceProvider, Settings,
                     throw new Error('unreachable');
                 },
             });
-
-            this.api.onRefreshTokenUpdated.subscribe(({ newRefreshToken, oldRefreshToken }) => {
-                this.settingsStorage.values.refreshToken = newRefreshToken;
-            });
         }
 
         if (this.settingsStorage.values.refreshToken) {
@@ -182,45 +153,7 @@ class RingPlugin extends ScryptedDeviceBase implements DeviceProvider, Settings,
             return;
         }
 
-        if (!this.settingsStorage.values.email || !this.settingsStorage.values.password) {
-            this.log.a('Enter your Ring username and password to complete setup.');
-            throw new Error('refresh token, username, and password are missing.');
-        }
-
-        this.loginClient = new RingRestClient({
-            email: this.settingsStorage.values.email,
-            password: this.settingsStorage.values.password,
-            controlCenterDisplayName: this.settingsStorage.values.controlCenterDisplayName,
-            systemId: this.settingsStorage.values.systemId,
-        });
-
-        if (!code) {
-            try {
-                const auth = await this.loginClient.getCurrentAuth();
-                this.settingsStorage.values.refreshToken = auth.refresh_token;
-            }
-            catch (e) {
-                if (this.loginClient.promptFor2fa) {
-                    this.log.a('Check your email or texts for your Ring login code, then enter it into the Two Factor Code setting to complete login.');
-                    return;
-                }
-                this.console.error(e);
-                this.log.a('Login failed.');
-                throw e;
-            }
-        }
-        else {
-            try {
-                const auth = await this.loginClient.getAuth(code);
-                this.settingsStorage.values.refreshToken = auth.refresh_token;
-            }
-            catch (e) {
-                this.console.error(e);
-                this.log.a('Login failed.');
-                throw e;
-            }
-        }
-        await createRingApi();
+        throw new Error('refresh token are missing.');
     }
 
     async onReceiveToken(code?: string) {
@@ -242,10 +175,6 @@ class RingPlugin extends ScryptedDeviceBase implements DeviceProvider, Settings,
                 createPeerConnection: () => {
                     throw new Error('unreachable');
                 },
-            });
-
-            this.api.onRefreshTokenUpdated.subscribe(({ newRefreshToken, oldRefreshToken }) => {
-                this.settingsStorage.values.refreshToken = newRefreshToken;
             });
         }
 
