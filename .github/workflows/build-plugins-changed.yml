@@ -49,6 +49,10 @@ jobs:
                 npm run build
                 popd
             done
+      - name: Add file
+        run: |
+          git status
+          git add .
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
