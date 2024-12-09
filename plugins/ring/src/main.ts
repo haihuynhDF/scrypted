@@ -248,7 +248,6 @@ class RingPlugin extends ScryptedDeviceBase implements DeviceProvider, Settings,
                 this.settingsStorage.values.refreshToken = newRefreshToken;
             });
         }
-
         await createRingApi();
     }
 
